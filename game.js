@@ -63,7 +63,7 @@
   }
   const tryEval = (tokens, vals) => { try { return tokens.length ? evaluate(tokens, vals) : null; } catch (e) { return null; } };
   const tokStr = (tokens, vals) => tokens.map(t => t.t === 'n' ? vals[t.i] : t.t === 'o' ? OPS[t.v] : t.t).join(' ').replace(/\( /g, '(').replace(/ \)/g, ')');
-  const usesAll = tokens => { const s = tokens.filter(t => t.t === 'n').map(t => t.i).sort().join(''); return s === '012'; };
+  const usesAll = tokens => new Set(tokens.filter(t => t.t === 'n').map(t => t.i)).size >= 2; // 주사위 2개 이상 (각각 최대 한 번)
 
   function sanitize(tokens) {
     if (!Array.isArray(tokens) || tokens.length > 20) return null;
@@ -78,10 +78,14 @@
     return out;
   }
 
-  // 주사위 3개로 만들 수 있는 모든 양의 정수 → 예시 식
+  // 주사위 2~3개로 만들 수 있는 모든 양의 정수 → 예시 식 (2개짜리 식 우선)
   function allValues(d) {
     const out = new Map(), N = i => ({ t: 'n', i }), O = v => ({ t: 'o', v });
     const P = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]], OP = ['+', '-', '*', '/'];
+    for (const [a, b] of P) for (const o of OP) {
+      const tk = [N(a), O(o), N(b)], v = tryEval(tk, d);
+      if (v && v.d === 1 && v.n > 0 && !out.has(v.n)) out.set(v.n, tk);
+    }
     for (const [a, b, c] of P) for (const o1 of OP) for (const o2 of OP) {
       for (const tk of [[N(a), O(o1), N(b), O(o2), N(c)], [{ t: '(' }, N(a), O(o1), N(b), { t: ')' }, O(o2), N(c)], [N(a), O(o1), { t: '(' }, N(b), O(o2), N(c), { t: ')' }]]) {
         const v = tryEval(tk, d);
@@ -354,7 +358,7 @@
     if (net.conn && net.conn.open) try { net.conn.send({ type: 'act', cid: myId, action: a }); } catch (e) { }
   }
   function rejectMsg(r) {
-    toast({ all: '주사위 3개를 모두 한 번씩 사용해야 합니다', int: '결과가 자연수가 아닙니다', none: '그 숫자의 카드가 남아있지 않습니다 (이미 누가 가져갔어요)' }[r] || '처리할 수 없는 요청');
+    toast({ all: '주사위를 2개 이상 사용해야 합니다', int: '결과가 자연수가 아닙니다', none: '그 숫자의 카드가 남아있지 않습니다 (이미 누가 가져갔어요)' }[r] || '처리할 수 없는 요청');
     const ex = $('#expr'); if (ex) { ex.classList.remove('shake'); void ex.offsetWidth; ex.classList.add('shake'); }
   }
 
@@ -464,7 +468,7 @@
         <ol>
           <li><b>주사위 담당</b>이 주사위 3개(6면·8면·12면)를 굴립니다. 담당은 매 라운드 다음 사람에게 넘어갑니다.</li>
           <li>주사위가 멈추는 순간 <b>모든 플레이어가 동시에</b> 카드를 찾습니다. 굴린 사람에게 우선권은 없습니다.</li>
-          <li>세 주사위 눈을 <b>모두 한 번씩</b> 사용하고, <b>+ − × ÷</b>와 괄호를 자유롭게 써서 피라미드에 남은 카드의 숫자를 만들면 그 카드를 가져갑니다. (× ÷ 먼저 계산)</li>
+          <li>세 주사위 중 <b>2개 이상</b>을 골라 (각각 한 번씩만) 사용하고, <b>+ − × ÷</b>와 괄호를 자유롭게 써서 피라미드에 남은 카드의 숫자를 만들면 그 카드를 가져갑니다. (× ÷ 먼저 계산)</li>
           <li>한 라운드에 한 사람당 <b>카드 1장</b>. 모두 가져가거나 패스하면, 또는 60초가 지나면 라운드가 끝납니다.</li>
         </ol>
         <h2>카드와 점수</h2>
@@ -567,7 +571,7 @@
     // stage line
     $('#stage-line').innerHTML = st.phase !== 'play' ? '' :
       st.stage === 'roll' ? `<span class="dot" ${dotS(roller.color)}></span><span>${iRoll && !st.local ? '<b>당신</b>이 주사위를 굴릴 차례' : `<b>${esc(roller.name)}</b>의 주사위 차례`}</span>` :
-      st.stage === 'search' ? `<span class="pulse"></span><span><b>모두 동시에!</b> 주사위 3개로 카드의 숫자를 만드세요</span>` :
+      st.stage === 'search' ? `<span class="pulse"></span><span><b>모두 동시에!</b> 주사위 2개 이상으로 카드의 숫자를 만드세요</span>` :
       `<span>라운드 종료</span>`;
     // expression
     const v = tryEval(ui.tokens, st.dice);
@@ -584,7 +588,7 @@
     gameEl.querySelectorAll('#ops button').forEach(b => b.disabled = !build);
     // actions
     const label = target ? (target.card ? `${target.card.v} 가져가기 <small>+${target.card.pts}</small>` : `${target.victim.name}의 ${v.n} 강탈 <small>+${target.pts}</small>`)
-      : v && !all ? '주사위 3개 모두 사용' : '가져가기';
+      : v && !all ? '주사위 2개 이상 사용' : '가져가기';
     let act = '';
     if (st.phase === 'play' && st.stage === 'search') {
       if (st.local) {
