@@ -1,0 +1,83 @@
+/* ---------- forum (decoy) ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: #15171b; color: #c9cdd4; font: 14px/1.55 Verdana, "Segoe UI", system-ui, sans-serif; -webkit-text-size-adjust: 100%; }
+#forum a { color: #7fb2ff; text-decoration: none; }
+#forum a:hover { text-decoration: underline; }
+.f-wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+.f-head { background: #1d2026; border-bottom: 1px solid #2c3038; position: sticky; top: 0; z-index: 5; }
+.f-head-in { display: flex; align-items: center; gap: 22px; height: 54px; }
+.f-logo { font: 600 17px "IBM Plex Mono", monospace; color: #e6e9ee !important; text-decoration: none !important; white-space: nowrap; }
+.f-logo-hex { color: #7fb2ff; margin-right: 1px; }
+.f-logo-dim { color: #6b717c; }
+.f-nav { display: flex; gap: 16px; font-size: 13px; }
+.f-nav a { color: #aab0ba !important; }
+.f-search { margin-left: auto; }
+.f-search input { background: #121418; border: 1px solid #2f343d; color: #c9cdd4; border-radius: 4px; padding: 6px 10px; width: 210px; font-size: 13px; }
+.f-main { padding-top: 18px; padding-bottom: 40px; min-height: calc(100vh - 110px); }
+.f-crumbs { font-size: 12px; color: #7d838e; margin-bottom: 12px; }
+.f-cats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
+.f-cat { background: #1d2026; border: 1px solid #2a2e36; border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; }
+.f-cat b { color: #e2e5ea; font-size: 13px; }
+.f-cat span { font-size: 11px; color: #7d838e; }
+.f-list { background: #1b1e23; border: 1px solid #2a2e36; border-radius: 6px; overflow: hidden; }
+.f-list-h { background: #22262d; padding: 9px 14px; font-weight: 700; font-size: 12px; color: #9aa1ac; text-transform: uppercase; letter-spacing: .06em; }
+.f-row { display: grid; grid-template-columns: 30px 1fr 70px 70px 110px; gap: 10px; align-items: center; padding: 11px 14px; border-top: 1px solid #262a31; color: inherit !important; text-decoration: none !important; }
+.f-row:hover { background: #20242b; }
+.f-row-ic { width: 26px; height: 26px; border-radius: 50%; background: #262b33; display: grid; place-items: center; color: #7d838e; font-size: 12px; }
+.f-row-title { color: #dfe3e8; font-weight: 600; }
+.f-row-meta { font-size: 11.5px; color: #7d838e; }
+.f-row-num { text-align: center; font-size: 11px; color: #7d838e; display: flex; flex-direction: column; }
+.f-row-num b { color: #c9cdd4; font-size: 13px; }
+.f-row-last { font-size: 11.5px; color: #7d838e; text-align: right; }
+.f-row.is-old .f-row-title { color: #b9a77d; }
+.f-tag { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; padding: 1px 6px; border-radius: 3px; margin-right: 7px; vertical-align: 1px; }
+.f-tag-solved { background: #1f3b2c; color: #7fd6a2; }
+.f-tag-unsolved { background: #3d3320; color: #e0c27a; }
+.f-online { margin-top: 14px; font-size: 12px; color: #7d838e; }
+.f-ghost { color: #5d5340; font-style: italic; }
+.f-title { font-size: 20px; color: #e6e9ee; margin: 4px 0 16px; line-height: 1.35; }
+.f-post { display: grid; grid-template-columns: 150px 1fr; background: #1b1e23; border: 1px solid #2a2e36; border-radius: 6px; margin-bottom: 10px; overflow: hidden; }
+.f-post-user { background: #1f2228; padding: 14px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; border-right: 1px solid #2a2e36; }
+.f-post-user b { color: #dfe3e8; font-size: 13px; word-break: break-all; }
+.f-post-user span { font-size: 10.5px; color: #7d838e; }
+.f-ava { width: 46px; height: 46px; border-radius: 8px; display: grid; place-items: center; font: 700 20px "IBM Plex Mono", monospace; color: #fff; background: hsl(var(--h) 35% 38%); }
+.f-post-body { padding: 14px 16px; min-width: 0; }
+.f-post-meta { font-size: 11px; color: #6b717c; margin-bottom: 8px; }
+.f-post code { font-family: "IBM Plex Mono", monospace; background: #121418; padding: 1px 5px; border-radius: 3px; font-size: 12.5px; color: #e7c98a; }
+.hexdump { font: 12px/1.6 "IBM Plex Mono", monospace; background: #0f1114; border: 1px solid #262a31; border-radius: 5px; padding: 10px 12px; overflow-x: auto; color: #9fb7d8; margin: 10px 0; }
+.f-post.is-deleted { opacity: .55; }
+.f-post.is-deleted .f-post-body { font-style: italic; color: #9a8b66; }
+.glyph { font-family: "Noto Sans Egyptian Hieroglyphs", serif; font-style: normal; font-size: 18px; color: #c9a44a; }
+.f-locked, .f-reply { text-align: center; font-size: 12px; color: #7d838e; padding: 14px; border: 1px dashed #2f343d; border-radius: 6px; }
+.f-foot { border-top: 1px solid #262a31; background: #181a1f; font-size: 11.5px; color: #6b717c; }
+.f-foot .f-wrap { display: flex; justify-content: space-between; gap: 10px; padding-top: 14px; padding-bottom: 18px; flex-wrap: wrap; }
+.f-foot a { color: #7d838e !important; }
+.f-tri { background: none; border: 0; padding: 2px 4px; margin: -2px 0; color: #4a4f58; font-size: 10px; cursor: default; line-height: 1; transition: color .3s, text-shadow .3s; }
+.f-tri:hover { color: #6a6f79; }
+.f-tri.knock { animation: knock .5s ease; }
+@keyframes knock { 0% { color: #e8c766; text-shadow: 0 0 10px #e8c766; transform: scale(1.5); } 100% { color: #4a4f58; text-shadow: none; transform: scale(1); } }
+
+@media (max-width: 720px) {
+  .f-nav, .f-search { display: none; }
+  .f-cats { grid-template-columns: repeat(2, 1fr); }
+  .f-row { grid-template-columns: 26px 1fr 56px; }
+  .f-row-num:nth-of-type(4), .f-row-last { display: none; }
+  .f-post { grid-template-columns: 1fr; }
+  .f-post-user { flex-direction: row; justify-content: flex-start; border-right: 0; border-bottom: 1px solid #2a2e36; padding: 10px 14px; gap: 10px; text-align: left; }
+  .f-ava { width: 32px; height: 32px; font-size: 15px; }
+  .hexdump { font-size: 10.5px; }
+  .f-title { font-size: 17px; }
+}
+
+/* ---------- portal ---------- */
+#portal { position: fixed; inset: 0; z-index: 100; background: #060812; transition: opacity .7s ease; }
+#portal.fade { opacity: 0; pointer-events: none; }
+#portal canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.portal-text { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; font: 600 clamp(14px, 3.4vw, 22px) "Cinzel", serif; letter-spacing: .32em; color: #f3dc94; text-shadow: 0 0 18px rgba(232, 199, 102, .55), 0 0 2px #000; text-align: center; padding: 0 16px; }
+.portal-text div { animation: rise .6s ease both; }
+.portal-text .eye { font-family: "Noto Sans Egyptian Hieroglyphs", serif; font-size: clamp(48px, 12vw, 90px); letter-spacing: 0; }
+@keyframes rise { from { opacity: 0; transform: translateY(10px); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+body.glitching #forum { animation: glitch .45s steps(2) both; }
+@keyframes glitch { 0% { transform: translate(0); filter: none; } 25% { transform: translate(-6px, 2px) skewX(4deg); filter: hue-rotate(60deg) contrast(1.6); } 50% { transform: translate(5px, -3px); clip-path: inset(10% 0 40% 0); } 75% { transform: translate(-3px, 1px) skewX(-6deg); filter: invert(.15); } 100% { transform: none; } }
+@media (prefers-reduced-motion: reduce) { body.glitching #forum { animation: none; } }
