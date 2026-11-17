@@ -166,6 +166,8 @@
 .ncard.t3 { --rim: #2a58cc; }
 .ncard.t4 { --rim: #8a6a3a; }
 .ncard.gone { opacity: 0; transform: scale(.85); pointer-events: none; }
+.ncard.fresh { animation: cardIn .7s cubic-bezier(.2,.9,.3,1.3) backwards; }
+@keyframes cardIn { 0% { opacity: 0; transform: translateY(-40%) scale(.6) rotateX(70deg); filter: brightness(2); } 60% { opacity: 1; filter: brightness(1.4); } 100% { transform: none; filter: none; } }
 .ncard.hl { transform: translateY(-4px) scale(1.12); z-index: 3; box-shadow: inset 0 0 0 1px #fff7df, inset 0 0 0 .45cqi var(--rim), 0 0 0 3px #57f0a8, 0 0 22px #57f0a8; }
 .flyer { position: fixed; z-index: 400; pointer-events: none; container-type: inline-size; }
 .flyer .ncard { width: 100%; height: 100%; }

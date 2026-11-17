@@ -164,15 +164,6 @@
       log(st, `${pname(p)} <span class="lx">${esc(ex)} = ${card.v}</span> 획득 <b>+${card.pts}</b>`);
       return true;
     }
-    const victim = st.players.find(o => o.id !== p.id && o.stack.length && o.stack[o.stack.length - 1].v === v.n);
-    if (victim) {
-      const c = victim.stack.pop(); victim.score -= c.pts;
-      p.stack.push(c); p.score += c.pts; p.acted = true; p.got = c.v;
-      const orig = st.cards.find(x => x.v === c.v); if (orig) orig.owner = p.id;
-      st.event = { seq: ++st.seq, kind: 'steal', pid: p.id, from: victim.id, v: c.v, pts: c.pts, ex };
-      log(st, `${pname(p)} <span class="lx">${esc(ex)} = ${c.v}</span> — ${pname(victim)}에게서 <b>강탈!</b> +${c.pts}`);
-      return true;
-    }
     return 'none';
   }
   function endRound(st) {
@@ -184,9 +175,23 @@
     st.event = { seq: ++st.seq, kind: 'reveal' };
   }
   function afterReveal(st) {
-    if (!st.cards.some(c => !c.owner) || st.round >= MAX_ROUNDS) { finish(st); return; }
+    if (st.round >= MAX_ROUNDS) { finish(st); return; }
     st.roller = (st.roller + 1) % st.players.length;
     toRollStage(st);
+    refill(st);
+  }
+  // 가져간 자리에 같은 단의 새 카드를 채움 (판에 없는 숫자 우선)
+  function refill(st) {
+    const R = reachAll(); let n = 0;
+    st.cards.forEach((c, k) => {
+      if (!c.owner) return;
+      const t = TIERS[c.tier], onBoard = new Set(st.cards.filter(x => !x.owner).map(x => x.v));
+      const pool = []; for (let v = t.lo; v <= t.hi; v++) if (R.has(v) && !onBoard.has(v) && v !== c.v) pool.push(v);
+      const v = pool.length ? pool[rand(pool.length)] : c.v;
+      st.cards[k] = { v, tier: c.tier, pts: t.pts, owner: null, fresh: st.round };
+      n++;
+    });
+    if (n) log(st, `빈 자리에 새 카드 ${n}장이 놓였다.`);
   }
   function finish(st) {
     st.phase = 'over'; st.deadline = 0;
@@ -373,8 +378,8 @@
     const prev = ui.st;
     // capture card position before re-render for the fly animation
     let fly = null;
-    if (ui.screen === 'game' && st.event && st.event.seq > ui.lastSeq && (st.event.kind === 'take' || st.event.kind === 'steal')) {
-      const src = st.event.kind === 'take' ? document.querySelector(`.ncard[data-v="${st.event.v}"]`) : document.querySelector(`.pchip[data-pid="${st.event.from}"] .ptop`);
+    if (ui.screen === 'game' && st.event && st.event.seq > ui.lastSeq && st.event.kind === 'take') {
+      const src = document.querySelector(`.ncard[data-v="${st.event.v}"]`);
       if (src) fly = { rect: src.getBoundingClientRect(), html: src.outerHTML, ev: st.event };
     }
     ui.st = st;
@@ -382,7 +387,7 @@
     if (st.phase !== 'lobby' && (ui.screen === 'lobby' || ui.screen === 'connecting')) ui.screen = 'game';
     if (st.phase === 'lobby' && ui.screen === 'game') { ui.screen = 'lobby'; gameEl.innerHTML = ''; }
     const key = `${st.phase}|${st.round}|${st.stage}|${st.dice.join()}`;
-    if (st.event && st.event.seq > ui.lastSeq && (st.event.kind === 'take' || st.event.kind === 'steal') && (st.local || st.event.pid === myId)) ui.tokens = [];
+    if (st.event && st.event.seq > ui.lastSeq && st.event.kind === 'take' && (st.local || st.event.pid === myId)) ui.tokens = [];
     if (key !== ui.key) { ui.key = key; ui.tokens = []; }
     const fresh = !prev || prev.phase === 'lobby' || ui.screen !== 'game';
     if (fresh) { ui.lastSeq = st.event ? st.event.seq : 0; ui.lastRoll = st.rollSeq; }
@@ -394,7 +399,7 @@
     if (st.event && st.event.seq > ui.lastSeq) {
       ui.lastSeq = st.event.seq;
       if (fly) flyCard(fly);
-      if (st.event.kind === 'take' || st.event.kind === 'steal') showBanner(st.event);
+      if (st.event.kind === 'take') showBanner(st.event);
       if (st.event.kind === 'reveal') showReveal(st);
     }
   }
@@ -473,10 +478,10 @@
         </ol>
         <h2>카드와 점수</h2>
         <table class="tbl">${TIERS.map(t => `<tr><td><span class="tg">${t.g}</span> ${t.name}</td><td>${t.lo === 1 ? '1–12' : t.lo + '–' + t.hi}</td><td><b>${t.pts}점</b></td></tr>`).join('')}</table>
-        <h2>강탈</h2>
-        <p>만든 숫자가 <b>다른 플레이어가 가장 최근에 가져간 카드</b>(더미 맨 위)와 같다면, 그 카드를 빼앗아 올 수 있습니다. 피라미드에 같은 숫자가 남아 있다면 피라미드가 우선입니다.</p>
+        <h2>새 카드</h2>
+        <p>라운드가 끝나면 카드를 가져간 빈 자리에 <b>같은 단의 새 카드</b>가 채워집니다. 피라미드는 항상 가득 찬 상태로 다음 라운드가 시작됩니다.</p>
         <h2>종료</h2>
-        <p>피라미드의 카드가 모두 사라지거나 ${MAX_ROUNDS}라운드가 끝나면 종료됩니다. 동점이면 카드를 더 많이 가진 사람이 이깁니다.</p>
+        <p>${MAX_ROUNDS}라운드가 끝나면 종료됩니다. 동점이면 카드를 더 많이 가진 사람이 이깁니다.</p>
         <h2>온라인</h2>
         <p>방을 만든 사람(호스트)의 기기가 게임을 진행합니다. 호스트가 창을 닫으면 게임이 끝납니다.</p>
       </div>
@@ -540,17 +545,19 @@
         <span class="dot"></span>
         <div class="pinfo"><div class="pn">${esc(p.name)}${p.id === myId && !st.local ? ' <small>(나)</small>' : ''}</div><div class="pst">${status}</div></div>
         <div class="pscore">${p.score}<small>점</small></div>
-        ${top ? `<div class="ptop t${top.tier}" title="맨 위 카드 — 강탈 가능">${top.v}</div>` : '<div class="ptop empty">·</div>'}
+        ${top ? `<div class="ptop t${top.tier}" title="마지막으로 가져간 카드">${top.v}</div>` : '<div class="ptop empty">·</div>'}
       </div>`;
     }).join('');
     // pyramid
     const pyr = $('#pyr');
-    if (pyr.dataset.sig !== st.cards.map(c => c.v).join()) {
-      pyr.dataset.sig = st.cards.map(c => c.v).join();
+    const sig = st.cards.map(c => c.v + ':' + (c.fresh || 0)).join();
+    if (pyr.dataset.sig !== sig) {
+      const first = !pyr.dataset.sig;
+      pyr.dataset.sig = sig;
       let k = 0;
       pyr.innerHTML = TIERS.map((t, ti) => {
         let row = '';
-        for (let j = 0; j < t.n; j++, k++) { const c = st.cards[k]; row += `<div class="ncard t${ti}" data-v="${c.v}"><span class="cv">${c.v}</span><span class="cg">${t.g}</span><span class="cp">${'●'.repeat(t.pts)}</span></div>`; }
+        for (let j = 0; j < t.n; j++, k++) { const c = st.cards[k]; row += `<div class="ncard t${ti}${!first && c.fresh === st.round ? ' fresh' : ''}" data-v="${c.v}"><span class="cv">${c.v}</span><span class="cg">${t.g}</span><span class="cp">${'●'.repeat(t.pts)}</span></div>`; }
         return `<div class="prow r${ti}"><div class="step"></div>${row}</div>`;
       }).join('');
     }
@@ -582,12 +589,10 @@
     $('#expr-v').innerHTML = v ? `= ${v.d === 1 ? v.n : v.n + '/' + v.d}` : ui.tokens.length ? '<span class="dim">…</span>' : '';
     $('#expr').classList.toggle('hit', !!target);
     pyr.querySelectorAll('.ncard.hl').forEach(e => e.classList.remove('hl'));
-    gameEl.querySelectorAll('.ptop.hl').forEach(e => e.classList.remove('hl'));
     if (target && target.card) { const e = pyr.querySelector(`.ncard[data-v="${target.card.v}"]`); if (e) e.classList.add('hl'); }
-    if (target && target.victim) { const e = gameEl.querySelector(`.pchip[data-pid="${target.victim.id}"] .ptop`); if (e) e.classList.add('hl'); }
     gameEl.querySelectorAll('#ops button').forEach(b => b.disabled = !build);
     // actions
-    const label = target ? (target.card ? `${target.card.v} 가져가기 <small>+${target.card.pts}</small>` : `${target.victim.name}의 ${v.n} 강탈 <small>+${target.pts}</small>`)
+    const label = target ? `${target.card.v} 가져가기 <small>+${target.card.pts}</small>`
       : v && !all ? '주사위 2개 이상 사용' : '가져가기';
     let act = '';
     if (st.phase === 'play' && st.stage === 'search') {
@@ -615,11 +620,7 @@
   }
   function findTarget(st, v) {
     const card = st.cards.find(c => !c.owner && c.v === v);
-    if (card) return { card };
-    const self = st.local ? null : myId;
-    const victim = st.players.find(o => o.id !== self && o.stack.length && o.stack[o.stack.length - 1].v === v);
-    if (victim) return { victim, pts: victim.stack[victim.stack.length - 1].pts };
-    return null;
+    return card ? { card } : null;
   }
 
   async function rollAnim() {
@@ -648,9 +649,9 @@
   let bannerT;
   function showBanner(ev) {
     const b = $('#banner'); if (!b) return;
-    const p = ui.st.players.find(x => x.id === ev.pid), v = ui.st.players.find(x => x.id === ev.from);
-    b.className = 'banner show ' + (ev.kind === 'steal' ? 'steal' : 'ok');
-    b.innerHTML = `<div class="bn-who" ${dotS(p.color)}>${esc(p.name)}</div><div class="bn-h">${ev.kind === 'steal' ? `${esc(v ? v.name : '')}에게서 강탈!` : '봉인 해제'}</div><div class="bn-e">${esc(ev.ex)} = ${ev.v}</div><div class="bn-m">+${ev.pts}점</div>`;
+    const p = ui.st.players.find(x => x.id === ev.pid);
+    b.className = 'banner show ok';
+    b.innerHTML = `<div class="bn-who" ${dotS(p.color)}>${esc(p.name)}</div><div class="bn-h">봉인 해제</div><div class="bn-e">${esc(ev.ex)} = ${ev.v}</div><div class="bn-m">+${ev.pts}점</div>`;
     clearTimeout(bannerT); bannerT = setTimeout(() => { b.className = 'banner'; }, 1700);
   }
   function showReveal(st) {
